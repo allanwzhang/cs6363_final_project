@@ -98,7 +98,8 @@ class CLIPVisionWrapper(nn.Module):
         Returns:
           pixel_values: (B, 3, 224, 224)
         """
-        if isinstance(images, torch.Tensor):
+        is_tensor_input = isinstance(images, torch.Tensor)
+        if is_tensor_input:
             if images.ndim == 3:
                 images = [images.cpu()]
             elif images.ndim == 4:
@@ -112,7 +113,10 @@ class CLIPVisionWrapper(nn.Module):
         else:
             images = list(images)
 
-        processed = self.processor(images=images, return_tensors="pt")
+        # Torch tensors produced by torchvision transforms are already in [0, 1].
+        # Avoid a second 1/255 rescale inside CLIPImageProcessor.
+        processor_kwargs = {"do_rescale": False} if is_tensor_input else {}
+        processed = self.processor(images=images, return_tensors="pt", **processor_kwargs)
         return processed["pixel_values"].to(self.device)
 
     @torch.no_grad()

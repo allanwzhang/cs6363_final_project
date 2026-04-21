@@ -27,7 +27,7 @@ def main(args):
 
     clip_model = CLIPVisionWrapper(device=device)
 
-    decoder = TokenGridDecoder().to(device)
+    decoder = TokenGridDecoder(output_size=args.output_size).to(device)
     decoder.load_state_dict(torch.load(args.decoder_path))
     decoder.eval()
 
@@ -46,7 +46,13 @@ def main(args):
 
             recon = decoder(features.hidden_states[args.layer])
 
-            total_mse += compute_mse(recon, images)
+            target = torch.nn.functional.interpolate(
+                images,
+                size=(args.output_size, args.output_size),
+                mode="bilinear",
+                align_corners=False,
+            )
+            total_mse += compute_mse(recon, target)
 
     print("Average MSE:", total_mse / len(loader))
 
@@ -59,6 +65,7 @@ if __name__ == "__main__":
     parser.add_argument("--decoder_path", required=True)
     parser.add_argument("--layer", type=int, default=4)
     parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--output_size", type=int, default=64)
 
     args = parser.parse_args()
     main(args)

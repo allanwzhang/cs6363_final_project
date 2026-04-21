@@ -12,7 +12,6 @@ from data.celeba_dataset import build_celeba_dataloader
 from data.transforms import get_basic_image_transform
 from model.clip_wrapper import CLIPVisionWrapper
 from model.decoders import TokenGridDecoder
-from utils.metrics import compute_mse
 
 
 def train_one_epoch(decoder, clip_model, loader, optimizer, device, layer):
@@ -26,7 +25,13 @@ def train_one_epoch(decoder, clip_model, loader, optimizer, device, layer):
         tokens = features.hidden_states[layer]
 
         recon = decoder(tokens)
-        loss = nn.functional.mse_loss(recon, images)
+        target = nn.functional.interpolate(
+            images,
+            size=(decoder.output_size, decoder.output_size),
+            mode="bilinear",
+            align_corners=False,
+        )
+        loss = nn.functional.mse_loss(recon, target)
 
         optimizer.zero_grad()
         loss.backward()
@@ -53,7 +58,7 @@ def main(args):
 
     clip_model = CLIPVisionWrapper(device=device, freeze=True)
 
-    decoder = TokenGridDecoder().to(device)
+    decoder = TokenGridDecoder(output_size=args.output_size).to(device)
 
     optimizer = torch.optim.Adam(decoder.parameters(), lr=args.lr)
 
@@ -89,6 +94,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--output_dir", default="./outputs")
+    parser.add_argument("--output_size", type=int, default=64)
 
     args = parser.parse_args()
     main(args)
