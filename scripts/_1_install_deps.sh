@@ -5,4 +5,4 @@
 
 set -e
 
-pip install transformers torchvision tqdm matplotlib pillow
+pip install transformers torchvision tqdm matplotlib pillow scikit-image

@@ -1,6 +1,7 @@
 # training/train_decoder.py
 
 import argparse
+import csv
 from pathlib import Path
 from tqdm import tqdm
 
@@ -12,6 +13,8 @@ from data.celeba_dataset import build_celeba_dataloader
 from data.transforms import get_basic_image_transform
 from model.clip_wrapper import CLIPVisionWrapper
 from model.decoders import TokenGridDecoder
+
+
 def train_one_epoch(decoder, clip_model, loader, optimizer, device, layer):
     decoder.train()
     total_loss = 0
@@ -71,26 +74,30 @@ def main(args):
 
     optimizer = torch.optim.Adam(decoder.parameters(), lr=args.lr)
 
+    save_path = Path(args.output_dir)
+    save_path.mkdir(exist_ok=True, parents=True)
+
+    loss_log = []
+
     for epoch in range(args.epochs):
-
         loss = train_one_epoch(
-            decoder,
-            clip_model,
-            loader,
-            optimizer,
-            device,
-            args.layer,
+            decoder, clip_model, loader, optimizer, device, args.layer,
         )
-
-        print(f"Epoch {epoch+1}: loss={loss:.5f}")
-
-        save_path = Path(args.output_dir)
-        save_path.mkdir(exist_ok=True, parents=True)
+        print(f"Epoch {epoch+1}/{args.epochs}: loss={loss:.5f}")
+        loss_log.append({"epoch": epoch + 1, "train_loss": loss})
 
         torch.save(
             decoder.state_dict(),
             save_path / f"decoder_layer{args.layer}.pt",
         )
+
+    # Save loss curve as CSV
+    csv_path = save_path / f"loss_layer{args.layer}.csv"
+    with open(csv_path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["epoch", "train_loss"])
+        writer.writeheader()
+        writer.writerows(loss_log)
+    print(f"Loss curve saved: {csv_path}")
 
 
 if __name__ == "__main__":

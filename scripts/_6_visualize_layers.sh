@@ -1,10 +1,12 @@
 #!/bin/bash
 # _6_visualize_layers.sh
-# Save side-by-side original vs reconstruction images for layers 1, 4, 8, 12.
-# Requires _3_train_layers.sh to have been run first.
+#
+# Re-generate original vs reconstruction images for layers 1, 4, 8, 12.
+# Uses TokenGrid checkpoints saved by _3_train_all.sh.
+# Run this anytime after _3_train_all.sh.
 #
 # Outputs:
-#   outputs/full_run/viz_layer<N>.png  for each layer
+#   outputs/full_run/viz_layer{N}.png  for each layer
 #
 # Usage:
 #   bash scripts/_6_visualize_layers.sh [dataset_root]
@@ -14,14 +16,13 @@ cd "$(dirname "$0")/.."
 
 DATASET_ROOT=${1:-"./datasets"}
 DECODER_DIR="./outputs/full_run"
-OUTPUT_DIR="./outputs/full_run"
 LAYERS=(1 4 8 12)
 
 for LAYER in "${LAYERS[@]}"; do
-    DECODER_PATH="$DECODER_DIR/decoder_layer${LAYER}.pt"
+    DECODER_PATH="$DECODER_DIR/TokenGrid_layer${LAYER}.pt"
 
     if [ ! -f "$DECODER_PATH" ]; then
-        echo "Missing checkpoint: $DECODER_PATH — run _3_train_layers.sh first"
+        echo "Missing checkpoint: $DECODER_PATH — run _3_train_all.sh first"
         exit 1
     fi
 
@@ -73,7 +74,7 @@ for i in range(n):
     plt.axis("off")
 
 plt.tight_layout()
-save_path = os.path.join("$OUTPUT_DIR", f"viz_layer{layer}.png")
+save_path = os.path.join("$DECODER_DIR", f"viz_layer{layer}.png")
 plt.savefig(save_path, dpi=160, bbox_inches="tight")
 plt.close(fig)
 print(f"Saved: {save_path}")
