@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clip-face-project"
+version = "0.1.0"
+description = "CLIP face interpretability project"
+requires-python = ">=3.10"
+dependencies = [
+    "torch",
+    "torchvision",
+    "open_clip_torch",
+    "Pillow",
+    "matplotlib",
+    "tqdm",
+    "numpy",
+    "gdown"
+]
+
+[tool.setuptools]
+packages = ["data", "model", "training", "testing", "utils"]
