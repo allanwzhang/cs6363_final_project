@@ -10,7 +10,6 @@ requires-python = ">=3.10"
 dependencies = [
     "torch",
     "torchvision",
-    "transformers",
     "open_clip_torch",
     "Pillow",
     "matplotlib",

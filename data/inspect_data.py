@@ -4,8 +4,8 @@ import math
 import matplotlib.pyplot as plt
 import torch
 
-from data.celeba_dataset import build_celeba_dataset, print_dataset_info
-from data.transforms import get_basic_image_transform
+from celeba_dataset import build_celeba_dataset, print_dataset_info
+from transforms import get_basic_image_transform
 
 
 def tensor_to_image(tensor):

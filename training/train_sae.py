@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from data.celeba_dataset import build_celeba_dataloader
 from data.transforms import get_basic_image_transform
 from model.clip_wrapper import CLIPVisionWrapper
-from model.sparse_encoder import SparseAutoencoder
+from model.sparse_autoencoder import SparseAutoencoder
 
 
 def main(args):
@@ -28,7 +28,7 @@ def main(args):
     clip_model = CLIPVisionWrapper(device=device)
 
     sae = SparseAutoencoder(
-        input_dim=clip_model.sequence_length * clip_model.hidden_size,
+        input_dim=50 * 768,
         latent_dim=args.latent_dim,
     ).to(device)
 
