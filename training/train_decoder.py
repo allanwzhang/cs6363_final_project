@@ -6,15 +6,12 @@ from tqdm import tqdm
 
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 
 from data.celeba_dataset import build_celeba_dataloader
 from data.transforms import get_basic_image_transform
 from model.clip_wrapper import CLIPVisionWrapper
 from model.decoders import TokenGridDecoder
-from utils.metrics import compute_mse
-
-
 def train_one_epoch(decoder, clip_model, loader, optimizer, device, layer):
     decoder.train()
     total_loss = 0
@@ -26,7 +23,13 @@ def train_one_epoch(decoder, clip_model, loader, optimizer, device, layer):
         tokens = features.hidden_states[layer]
 
         recon = decoder(tokens)
-        loss = nn.functional.mse_loss(recon, images)
+        target = nn.functional.interpolate(
+            images,
+            size=(decoder.output_size, decoder.output_size),
+            mode="bilinear",
+            align_corners=False,
+        )
+        loss = nn.functional.mse_loss(recon, target)
 
         optimizer.zero_grad()
         loss.backward()
@@ -49,11 +52,22 @@ def main(args):
         transform=transform,
         batch_size=args.batch_size,
         shuffle=True,
+        num_workers=args.num_workers,
     )
+    if args.max_samples > 0:
+        subset_size = min(args.max_samples, len(loader.dataset))
+        loader = DataLoader(
+            Subset(loader.dataset, range(subset_size)),
+            batch_size=args.batch_size,
+            shuffle=True,
+            num_workers=loader.num_workers,
+            pin_memory=loader.pin_memory,
+        )
+        print(f"Using subset: {subset_size} samples")
 
     clip_model = CLIPVisionWrapper(device=device, freeze=True)
 
-    decoder = TokenGridDecoder().to(device)
+    decoder = TokenGridDecoder(output_size=args.output_size).to(device)
 
     optimizer = torch.optim.Adam(decoder.parameters(), lr=args.lr)
 
@@ -89,6 +103,9 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--output_dir", default="./outputs")
+    parser.add_argument("--output_size", type=int, default=64)
+    parser.add_argument("--max_samples", type=int, default=0)
+    parser.add_argument("--num_workers", type=int, default=0)
 
     args = parser.parse_args()
     main(args)

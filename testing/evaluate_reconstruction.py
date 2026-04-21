@@ -3,6 +3,7 @@
 import argparse
 import torch
 from tqdm import tqdm
+from torch.utils.data import DataLoader, Subset
 
 from data.celeba_dataset import build_celeba_dataloader
 from data.transforms import get_basic_image_transform
@@ -23,11 +24,22 @@ def main(args):
         transform=transform,
         batch_size=args.batch_size,
         shuffle=False,
+        num_workers=args.num_workers,
     )
+    if args.max_samples > 0:
+        subset_size = min(args.max_samples, len(loader.dataset))
+        loader = DataLoader(
+            Subset(loader.dataset, range(subset_size)),
+            batch_size=args.batch_size,
+            shuffle=False,
+            num_workers=loader.num_workers,
+            pin_memory=loader.pin_memory,
+        )
+        print(f"Using subset: {subset_size} samples")
 
     clip_model = CLIPVisionWrapper(device=device)
 
-    decoder = TokenGridDecoder().to(device)
+    decoder = TokenGridDecoder(output_size=args.output_size).to(device)
     decoder.load_state_dict(torch.load(args.decoder_path))
     decoder.eval()
 
@@ -46,7 +58,13 @@ def main(args):
 
             recon = decoder(features.hidden_states[args.layer])
 
-            total_mse += compute_mse(recon, images)
+            target = torch.nn.functional.interpolate(
+                images,
+                size=(args.output_size, args.output_size),
+                mode="bilinear",
+                align_corners=False,
+            )
+            total_mse += compute_mse(recon, target)
 
     print("Average MSE:", total_mse / len(loader))
 
@@ -59,6 +77,9 @@ if __name__ == "__main__":
     parser.add_argument("--decoder_path", required=True)
     parser.add_argument("--layer", type=int, default=4)
     parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--output_size", type=int, default=64)
+    parser.add_argument("--max_samples", type=int, default=0)
+    parser.add_argument("--num_workers", type=int, default=0)
 
     args = parser.parse_args()
     main(args)

@@ -3,3 +3,4 @@
 /clip_face_project.egg-info
 __pycache__/
 model/__pycache__/__init__.cpython-313.pyc
+/outputs/

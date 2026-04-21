@@ -16,6 +16,7 @@ def main():
         split="train",
         transform=transform,
         batch_size=4,
+        num_workers=0,
     )
 
     batch = next(iter(loader))
